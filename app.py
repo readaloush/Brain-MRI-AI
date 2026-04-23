@@ -11,18 +11,12 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
-# ======================
-# PAGE CONFIG
-# ======================
 st.set_page_config(
     page_title="Brain MRI AI Assistant",
     page_icon="🧠",
     layout="centered"
 )
 
-# ======================
-# SETTINGS
-# ======================
 MODEL_PATH = "efficientnet_dataset_final_best.keras"
 MODEL_URL = "https://drive.google.com/uc?id=1rz4ERlK5OL1bkf4-v0YCiqEtXgAIrFbH"
 
@@ -30,22 +24,16 @@ IMG_SIZE = 224
 class_names = ["Glioma", "Meningioma", "Notumor", "Pituitary"]
 LAST_CONV_LAYER_NAME = "top_conv"
 
-# ======================
-# LOAD MODEL
-# ======================
 @st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
         with st.spinner("Downloading AI model... Please wait."):
             gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
 
-    return tf.keras.models.load_model(MODEL_PATH)
+    return tf.keras.models.load_model(MODEL_PATH, compile=False)
 
 model = load_model()
 
-# ======================
-# PREPROCESS
-# ======================
 def prepare_image(image):
     image = image.convert("RGB")
     image = image.resize((IMG_SIZE, IMG_SIZE))
@@ -54,9 +42,6 @@ def prepare_image(image):
     img = np.expand_dims(img, axis=0)
     return img
 
-# ======================
-# GRAD-CAM
-# ======================
 def make_gradcam_heatmap(img_array, model, layer_name):
     grad_model = tf.keras.models.Model(
         inputs=model.inputs,
@@ -92,9 +77,6 @@ def overlay_heatmap(img, heatmap):
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     return cv2.addWeighted(img, 0.6, heatmap, 0.4, 0)
 
-# ======================
-# PDF REPORT
-# ======================
 def create_pdf_report(original_img_pil, heatmap_img_array, pred_class, confidence, probs):
     pdf_buffer = BytesIO()
     c = canvas.Canvas(pdf_buffer, pagesize=A4)
@@ -198,9 +180,6 @@ def create_pdf_report(original_img_pil, heatmap_img_array, pred_class, confidenc
     pdf_buffer.seek(0)
     return pdf_buffer
 
-# ======================
-# HEADER
-# ======================
 st.title("🧠 Brain MRI AI Assistant")
 st.caption("Medical + AI powered brain tumor classification")
 st.markdown("### 👨‍💻 Developed by **Read Aloush**")
@@ -210,17 +189,11 @@ st.info(
     "confidence, and highlight the focus area."
 )
 
-# ======================
-# UPLOAD
-# ======================
 uploaded_file = st.file_uploader(
     "Upload MRI Image",
     type=["jpg", "jpeg", "png"]
 )
 
-# ======================
-# MAIN
-# ======================
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
 
@@ -306,8 +279,5 @@ if uploaded_file is not None:
             "It is not a substitute for medical diagnosis."
         )
 
-# ======================
-# FOOTER
-# ======================
 st.markdown("---")
 st.caption("©️ 2026 Read Aloush | AI Brain MRI Project")
